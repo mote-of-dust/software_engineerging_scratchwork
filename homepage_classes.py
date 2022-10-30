@@ -37,3 +37,4 @@ class Course(UserControl):
         ],
         alignment="center",
     )
+

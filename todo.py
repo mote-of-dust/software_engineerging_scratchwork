@@ -152,13 +152,15 @@ class TrackerBuddy(UserControl):
                         FloatingActionButton(
                             icon=icons.ADD,
                             bgcolor="#622678",
-                            on_click=self.add_clicked),
+                            on_click=self.auto_pop),
                     ],
                 ),
                 self.board,
             ],
         )
         return self.wall
+
+
 
     def add_clicked(self, e):
 
@@ -176,14 +178,15 @@ class TrackerBuddy(UserControl):
         self.assignment_title.value = ""
         self.update()
 
-    def auto_pop(self):
+    def auto_pop(self, k):
         populate = touch_db()
         print("You have: %d tasks" % len(populate))
         for i in populate:
             tasknum=1
             for j in i:
                 print("Task %d: %s" % (tasknum, j))
-                self.final_pop(j)
+                assignment = Assignment(j)
+                self.final_pop(assignment)
 
 
 
@@ -346,12 +349,12 @@ class Login(UserControl):
 
         if username == search[1] and bcrypt.checkpw(password, hashed):
             print("Match")
-            EID = search[0]
+            user_ID = search[0]
             connection.commit()
             connection.close()
             self.update()
             # Needs to return a tuple, containing (bool, username)
-            results = [True, EID]
+            results = [True, user_ID]
             return results
         else:
             print("No Match")
@@ -467,9 +470,10 @@ def main(page: Page):
             # ensuring that verify holds both the results bool, and username
             # print(verify[1])
             unsafe_un = verify[1]
+
+            page.go("/home")
             # tracker.build()
             # tracker.auto_pop()
-            page.go("/home")
         else:
             open_banner(e)
 

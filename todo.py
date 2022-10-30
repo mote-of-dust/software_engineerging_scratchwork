@@ -58,21 +58,8 @@ from flet import (
 unsafe_un = ''
 
 
-def touch_db():
-    connection = sqlite3.connect("group_2_db.db")
-    cursor = connection.cursor()
-
-    # example of what inserting a task into the DB will look like:
-    # INSERT into task(t_type, date_added, user_ID, dept_ID, course_num, task_name, task_descrip) VALUES (1,
-    # strftime('%s', 'now'), 2, "COSC", 3319, "Heap Sort", "build max heap")
-    cursor.execute(f"SELECT (task_name) FROM task WHERE user_ID=?", [unsafe_un])
-    rows = cursor.fetchall()
-    connection.close()
-    return rows
-
-
 class Assignment(UserControl):
-
+    # db_test()
     # select * from user_task where user_name == name, and class_id == #
 
     def __init__(self, assignment_name):
@@ -90,7 +77,6 @@ class Assignment(UserControl):
             value=False,
             label="",
         )
-
 
         self.item = Column()
         # self.touch_db()
@@ -131,7 +117,6 @@ class TrackerBuddy(UserControl):
 
     def build(self):
 
-
         self.assignment_title = TextField(
             hint_text="Assignment Title",
             border_color="#622678",
@@ -160,7 +145,17 @@ class TrackerBuddy(UserControl):
         )
         return self.wall
 
+    def touch_db(self):
+        connection = sqlite3.connect("group_2_db.db")
+        cursor = connection.cursor()
 
+        # example of what inserting a task into the DB will look like:
+        # INSERT into task(t_type, date_added, user_ID, dept_ID, course_num, task_name, task_descrip) VALUES (1,
+        # strftime('%s', 'now'), 2, "COSC", 3319, "Heap Sort", "build max heap")
+        cursor.execute(f"SELECT (task_name) FROM task WHERE user_ID=?", [unsafe_un])
+        rows = cursor.fetchall()
+        connection.close()
+        return rows
 
     def add_clicked(self, e):
 
@@ -168,6 +163,7 @@ class TrackerBuddy(UserControl):
             return
 
         assignment = Assignment(self.assignment_title.value)
+
         self.final_pop(assignment)
         # self.board.controls.append(assignment)
         # self.assignment_title.value = ""
@@ -179,20 +175,15 @@ class TrackerBuddy(UserControl):
         self.update()
 
     def auto_pop(self, k):
-        populate = touch_db()
+        populate = self.touch_db()
         print("You have: %d tasks" % len(populate))
+        tasknum = 1
         for i in populate:
-            tasknum=1
             for j in i:
                 print("Task %d: %s" % (tasknum, j))
                 assignment = Assignment(j)
                 self.final_pop(assignment)
-
-
-
-
-
-
+                tasknum += 1
 
 
 class User(UserControl):

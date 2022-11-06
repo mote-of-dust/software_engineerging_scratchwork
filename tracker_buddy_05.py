@@ -119,7 +119,8 @@ shsu_orange = "#f88f00"
 shsu_blue = "#333798"
 
 # global login ID
-userID = ''
+userID = '2'
+CURRENTCLASS = '3319'
 
 
 # In[13]:
@@ -164,6 +165,26 @@ def your_courses():  # gets all the courses you are enrolled in and puts them in
         your_list.append(result[3])
 
     return your_list
+
+# function to get assignments once you click on a class, to populate your assignment page
+def your_assignments():
+    your_list = []
+
+    connection = sqlite3.connect("group_2_db.db")
+    cursor = connection.cursor()
+    cursor.execute("SELECT task_name FROM task where user_ID=? AND course_num=?", [userID, CURRENTCLASS])
+    results = cursor.fetchall()
+    # print(results)
+    connection.close()
+
+    for result in results:
+        your_list.append(result[0])
+    # print(your_list)
+
+    return your_list
+
+
+# your_assignments()
 
 
 # In[589]:
@@ -388,6 +409,9 @@ def main(page: Page):
 
 
 class TrackerBuddy(UserControl):
+
+    def auto_pop(self):
+        return -1
 
     def build(self):
         self.assignment_title = TextField(

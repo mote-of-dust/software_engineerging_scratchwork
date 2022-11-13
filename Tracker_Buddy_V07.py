@@ -49,70 +49,8 @@ from flet import (
     border_radius,
     Divider,
     ListView,
+    ProgressRing,
 )
-
-# In[ ]:
-
-
-# In[3]:
-
-
-# Database
-
-
-# In[456]:
-
-
-# connection = sqlite3.connect("Tracker_buddy_v0.3.db")  # creates the database
-
-# In[457]:
-
-
-# cursor = connection.cursor()  # creates connection
-
-# In[459]:
-
-
-# create a table
-# cursor.execute(
-#     """
-#     CREATE TABLE my_courses (
-#     name text
-#     )
-#     """
-# )
-#
-# # In[461]:
-#
-#
-# cursor.execute(
-#     "INSERT INTO my_courses VALUES (:name)",
-#     {'name': 'Math'}
-# )
-#
-# # In[462]:
-#
-#
-# cursor.execute("SELECT * FROM my_courses")
-# search = cursor.fetchall()
-#
-# # In[464]:
-#
-#
-# search
-#
-# # In[465]:
-#
-#
-# connection.commit()
-#
-# # In[466]:
-#
-#
-# connection.close()
-
-# In[12]:
-
 
 # SHSU colors
 shsu_orange = "#f88f00"
@@ -121,15 +59,7 @@ shsu_blue = "#333798"
 # global login ID
 userID = ''
 CURRENTCLASS = ''
-
-
-# In[13]:
-
-
-# classes
-
-
-# In[43]:
+CURRENTASSIGNMENT = ''
 
 
 def get_courses():  # access the DB and get all the courses and puts them in a list
@@ -139,7 +69,7 @@ def get_courses():  # access the DB and get all the courses and puts them in a l
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM class")
     results = cursor.fetchall()
-    #print(results[2])
+    # print(results[2])
     connection.close()
 
     for result in results:
@@ -147,9 +77,6 @@ def get_courses():  # access the DB and get all the courses and puts them in a l
         courses_list.append(str(result[2]))
 
     return courses_list
-
-
-# In[588]:
 
 
 def your_courses():  # gets all the courses you are enrolled in and puts them in a list
@@ -167,7 +94,9 @@ def your_courses():  # gets all the courses you are enrolled in and puts them in
 
     return your_list
 
+
 # function to get assignments once you click on a class, to populate your assignment page
+# not yet implemented as of 11/13/2022. written for v_0.6 by Marc for later use.
 def your_assignments():
     your_list = []
 
@@ -185,25 +114,9 @@ def your_assignments():
     return your_list
 
 
-# your_assignments()
-
-
-# In[589]:
-
-
-# your_courses()
-
-
-# In[ ]:
-
-
-# In[571]:
-
-
 class SearchCourse(UserControl):
 
     def build(self):
-
         self.course_list = get_courses()
         self.your_course_list = [Text("Test")]
         self.return_list = []
@@ -334,38 +247,40 @@ class SearchCourse(UserControl):
 
     def confirm(self, e):
 
-        #print(self.courses.controls[1].controls[0].leading.value)
+        # print(self.courses.controls[1].controls[0].leading.value)
         try:
-           if self.courses.controls[1].controls[0].leading.value == True:
-            your_course = YourCourse(self.courses.controls[1].controls[0].title.value)
-            self.courses.controls[1].controls.pop()
+            if self.courses.controls[1].controls[0].leading.value == True:
+                your_course = YourCourse(self.courses.controls[1].controls[0].title.value)
+                self.courses.controls[1].controls.pop()
 
-            #                 self.courses.controls[3].controls[2].controls.append(your_course)
-            #                 self.your_course_list.append(your_course)
+                #                 self.courses.controls[3].controls[2].controls.append(your_course)
+                #                 self.your_course_list.append(your_course)
 
-            self.your_course_list.append(your_course)
-            self.confirm_search.bgcolor = shsu_orange
-            self.confirm_search.disabled = False
+                self.your_course_list.append(your_course)
+                self.confirm_search.bgcolor = shsu_orange
+                self.confirm_search.disabled = False
 
-            deptID = self.get_prefix(your_course.course_name)
-            print(deptID)
+                deptID = self.get_prefix(your_course.course_name)
+                print(deptID)
 
-            coursenum = self.get_coursenum(your_course.course_name)
-            print(coursenum)
+                coursenum = self.get_coursenum(your_course.course_name)
+                print(coursenum)
 
-            connection = sqlite3.connect("group_2_db.db")
-            cursor = connection.cursor()
-            cursor.execute(
-                "INSERT INTO user_class(user_ID, dept_ID, course_num, course_name, current_bool, course_level, course_exp) VALUES (:user, :dept_ID, :course_num, :course_name, :current_bool, :course_level, :course_exp)",
-                {'user': userID, 'dept_ID': deptID, 'course_num': coursenum, 'course_name': f"{your_course.course_name}", 'current_bool': 1, 'course_level': 1, 'course_exp': 0.0}
-            )
-            connection.commit()
-            connection.close()
+                connection = sqlite3.connect("group_2_db.db")
+                cursor = connection.cursor()
+                cursor.execute(
+                    "INSERT INTO user_class(user_ID, dept_ID, course_num, course_name, current_bool, course_level, course_exp) VALUES (:user, :dept_ID, :course_num, :course_name, :current_bool, :course_level, :course_exp)",
+                    {'user': userID, 'dept_ID': deptID, 'course_num': coursenum,
+                     'course_name': f"{your_course.course_name}", 'current_bool': 1, 'course_level': 1,
+                     'course_exp': 0.0}
+                )
+                connection.commit()
+                connection.close()
 
-            #                 self.print_list()
+                #                 self.print_list()
 
-            self.update()
-            return True
+                self.update()
+                return True
         except:
             print("Nothing to match with")
 
@@ -376,16 +291,11 @@ class SearchCourse(UserControl):
         self.update()
 
     def get_signal(self):
-        print("It WORKED")
-        return True
+        self.update()
 
     def print_list(self):
-
         self.test = your_courses()
         return self.test
-
-
-# In[590]:
 
 
 class YourCourse(UserControl):
@@ -397,8 +307,6 @@ class YourCourse(UserControl):
     #         self.course_delete = course_delete
 
     def build(self):
-        self.signal = SearchCourse.get_signal
-
         self.course_button = ElevatedButton(
             text=self.course_name,
             color=colors.WHITE,
@@ -409,44 +317,10 @@ class YourCourse(UserControl):
         return self.course_button
 
     def course_clicked(self, e):
-        self.signal(self)
-        print("IN COURSE_CLICKED")
-
-
-#         return True
-
-
-# In[592]:
-
-
-# this bit of code I use to check individual things quickly
-
-def main(page: Page):
-    page.title = "Tracker Buddy"
-    page.horizontal_alignment = "center"
-    page.vertical_alignment = "center"
-    page.bgcolor = "#14152b"
-    page.window_width = 800
-    page.window_height = 600
-    page.scroll = "auto"
-    page.auto_scroll = True
-
-    tb = TrackerBuddy()
-    course = SearchCourse()
-
-    page.add(course)
-
-
-# flet.app(target=main) # uncomment to run this code
-
-
-# In[593]:
+        self.update()
 
 
 class TrackerBuddy(UserControl):
-
-    def auto_pop(self):
-        return -1
 
     def build(self):
         self.assignment_title = TextField(
@@ -491,24 +365,56 @@ class TrackerBuddy(UserControl):
         assignment = Assignment(
             self.assignment_title.value,
             self.assignment_status_change,
-            self.assignment_delete
+            self.assignment_delete,
+            self.assignment_complete,
         )
         self.board.controls.append(assignment)
         self.assignment_title.value = ""
         self.update()
 
+    def call_check(self, e):
+        tasks = []
+        connection = sqlite3.connect("group_2_db.db")
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT task_name FROM task WHERE user_ID = 2 AND date_completed is NULL"
+        )
+        results = cursor.fetchall()
+        # print(results)
+        for i in results:
+            for j in i:
+                tasks.append(j)
+        # print(tasks)
+
+        for item in tasks:
+            assignment = Assignment(
+                item,
+                self.assignment_status_change,
+                self.assignment_delete,
+                self.assignment_complete,
+            )
+            self.board.controls.append(assignment)
+            # self.assignment_title.value = ""
+            self.update()
+        connection.commit()
+        connection.close()
+        print("gottem")
+
     def assignment_status_change(self, assignment):
         self.update()
 
-    def assignment_delete(self, task):
+    def assignment_delete(self, assignment):
         self.board.controls.remove(assignment)
+        self.update()
+
+    def assignment_complete(self, assignment):
+        self.board.controls.remove(assignment)
+        # logic for adding points goes here
+
         self.update()
 
     def tabs_changed(self, e):
         self.update()
-
-
-# In[594]:
 
 
 class SubTask(UserControl):
@@ -535,6 +441,7 @@ class SubTask(UserControl):
 
         self.delete_icon = IconButton(
             icons.DELETE_OUTLINE,
+            icon_color=colors.RED,
             tooltip="Delete To-Do",
             on_click=self.delete_clicked,
         )
@@ -594,21 +501,23 @@ class SubTask(UserControl):
         self.subtask_delete(self)
 
 
-# In[595]:
-
-
 class Assignment(UserControl):
 
-    def __init__(self, assignment_name, assignment_status, assignment_delete):
+    def __init__(
+            self,
+            assignment_name,
+            assignment_status,
+            assignment_delete,
+            assignment_complete
+    ):
         super().__init__()
         self.completed = False
         self.assignment_name = assignment_name
         self.assignment_status = assignment_status
         self.assignment_delete = assignment_delete
+        self.assignment_complete = assignment_complete
 
     def build(self):
-        self.counter = 0
-
         self.new_step = TextField(
             hint_text="Add a step",
             border_color=shsu_orange,
@@ -618,14 +527,44 @@ class Assignment(UserControl):
         self.edit_icon = IconButton(
             icon=icons.CREATE_OUTLINED,
             tooltip="Edit Assignment",
-            #             on_click=self.edit_clicked,
+            on_click=self.edit_clicked,
         )
 
         self.delete_icon = IconButton(
             icons.DELETE_OUTLINE,
+            icon_color=colors.RED,
             tooltip="Delete Assignment",
-            #                 on_click=self.delete_clicked,
+            on_click=self.delete_clicked,
         )
+
+        self.complete_icon = IconButton(
+            icon=icons.DONE_OUTLINE_OUTLINED,
+            icon_color=colors.GREEN,
+            tooltip="Complete Assignment",
+            on_click=self.complete_clicked,
+        )
+
+        self.save_icon = IconButton(
+            icon=icons.DONE_OUTLINE_OUTLINED,
+            icon_color=colors.GREEN,
+            visible=False,
+            tooltip="Save Change",
+            on_click=self.save_clicked,
+        )
+
+        self.edit_title = TextField(expand=1)
+
+        self.edit_view = Row(
+            visible=False,
+            alignment="spaceBetween",
+            vertical_alignment="center",
+            controls=[
+                self.edit_title,
+                self.save_icon,
+            ],
+        )
+
+        self.name = Text(self.assignment_name, size=30)
 
         self.item = Column()
 
@@ -636,15 +575,17 @@ class Assignment(UserControl):
                         Row(
                             alignment="spaceBetween",
                             controls=[
-                                Text(self.assignment_name, size=30),
+                                self.name,
                                 Row(
                                     controls=[
                                         self.edit_icon,
+                                        self.complete_icon,
                                         self.delete_icon,
                                     ]
                                 ),
                             ]
                         ),
+                        self.edit_view,
                         Divider(height=10, color=shsu_orange),
                         self.item,
                         Row(
@@ -677,11 +618,49 @@ class Assignment(UserControl):
         self.item.controls.remove(subtask)
         self.update()
 
+    def edit_clicked(self, e):
+        self.edit_title.value = self.assignment_name
+        self.name.visible = False
+        self.edit_icon.visible = False
+        self.delete_icon.visible = False
+        self.complete_icon.visible = False
+        self.edit_view.visible = True
+        self.save_icon.visible = True
+        self.update()
 
-# In[ ]:
+    def save_clicked(self, e):
+        self.name.value = self.edit_title.value
+        self.name.visible = True
+        self.edit_icon.visible = True
+        self.complete_icon.visible = True
+        self.delete_icon.visible = True
+        self.edit_view.visible = False
+        self.save_icon.visible = False
+        self.update()
+
+    def delete_clicked(self, e):
+        self.assignment_delete(self)
+
+    def complete_clicked(self, e):
+        self.assignment_complete(self)
 
 
-# In[596]:
+# this bit of code I use to check individual things quickly
+
+def main(page: Page):
+    page.title = "Tracker Buddy"
+    page.horizontal_alignment = "center"
+    page.vertical_alignment = "center"
+    page.bgcolor = "#14152b"
+    page.window_width = 800
+    page.window_height = 600
+    page.scroll = "auto"
+    page.auto_scroll = True
+
+    tb = TrackerBuddy()
+    course = SearchCourse()
+
+    page.add(tb)
 
 
 class User(UserControl):
@@ -690,9 +669,6 @@ class User(UserControl):
         super().__init__()
         self.username = username
         self.password = password
-
-
-# In[597]:
 
 
 class SignUp(UserControl):
@@ -777,9 +753,6 @@ class SignUp(UserControl):
         self.update()
 
 
-# In[598]:
-
-
 class Login(UserControl):
 
     def build(self):
@@ -855,17 +828,6 @@ class Login(UserControl):
 
         connection.commit()
         connection.close()
-    # return True
-    # self.update()
-
-
-# In[599]:
-
-
-# page
-
-
-# In[606]:
 
 
 def main(page: Page):
@@ -882,45 +844,77 @@ def main(page: Page):
     # ---------------------
 
     # theme switch
-    sun = Icon(icons.LIGHT_MODE_OUTLINED)
-    moon = Icon(icons.MODE_NIGHT_OUTLINED)
+    sun = icons.LIGHT_MODE_OUTLINED
+    moon = icons.MODE_NIGHT_OUTLINED
 
-    def switch_mode(e):
-
-        if switch.value == True:
-            appbar.actions[0] = moon
-            page.theme_mode = "dark"
+    def theme_mode(e):
+        if theme_button.icon == moon:
+            theme_button.icon = sun
+            page.theme_mode = "light"
             page.update()
 
         else:
-            appbar.actions[0] = sun
-            page.theme_mode = "light"
-            appbar.color = colors.WHITE
+            theme_button.icon = moon
+            page.theme_mode = "dark"
             page.update()
 
-    switch = Switch(
-        value=True,
-        on_change=switch_mode
+    theme_button = IconButton(
+        icon=moon,
+        icon_color=colors.WHITE,
+        on_click=theme_mode,
     )
+    # ---------------------
+
+    # level & progress ring
+    level_display = Text(
+        value="5",  # display purpose global variable would go here
+        size=30,
+        color=shsu_orange,
+    )
+
+    level_ring = ProgressRing(
+        value=0.5,
+        color=shsu_orange,
+        tooltip="Progress to the next level",
+        width=20,
+        height=20,
+        stroke_width=2
+    )
+
+    def level_up():
+        pass  # logic to level up
+
     # ---------------------
 
     # appbar theme
     icon = moon
+    check_list = Icon(
+        icons.ASSIGNMENT,
+        color=colors.WHITE,
+    )
+
+    def logout(e):
+        page.controls.clear()
+        page.controls.append(login)
+        page.controls.append(login_row)
+        courses_row.controls.clear()
+        page.update()
+
+    logout_button = IconButton(
+        icon=icons.LOGOUT_OUTLINED,
+        icon_color=colors.WHITE,
+        on_click=logout,
+    )
 
     appbar = page.appbar = AppBar(
         color=colors.WHITE,
-        leading=Icon(icons.ASSIGNMENT),
+        leading=check_list,
         leading_width=40,
         title=Text("Tracker Buddy"),
         center_title=True,
         bgcolor=shsu_blue,
-        actions=[icon, switch]
+        actions=[theme_button, logout_button]
     )
-
-    def move_back():
-        appbar.leading = Null
-        page.update()
-
     # ---------------------
 
     # classes/pages
@@ -1011,10 +1005,12 @@ def main(page: Page):
         page.controls.remove(refresh_list_button)
         page.controls.append(back_to_courses_button)
         page.controls.append(tracker)
+        page.controls.append(refresh_assignments_button)
+        page.controls.append(level_ring)
+        page.controls.append(level_display)
         page.update()
 
     def create_courses_button(e):
-
         my_courses = searchcourse.print_list()
         for item in my_courses:
             course_button = ElevatedButton(
@@ -1030,10 +1026,17 @@ def main(page: Page):
         courses_row.controls.clear()
         create_courses_button(e)
 
+    def refresh_assignments(e):
+        tracker.call_check(e)
+        # print("got ya bish") # logic to refresh assignments here
+
     def to_courses(e):
-        #         appbar.title = Text("Tracker Buddy")
+        #         appbar.title = Text("Tracker Buddy") # this will change the name to the class name
         page.controls.remove(back_to_courses_button)
         page.controls.remove(tracker)
+        page.controls.remove(refresh_assignments_button)
+        page.controls.remove(level_ring)
+        page.controls.remove(level_display)
         page.controls.append(searchcourse)
         page.controls.append(courses_row)
         page.controls.append(refresh_list_button)
@@ -1083,6 +1086,12 @@ def main(page: Page):
         on_click=refresh_list,
     )
 
+    refresh_assignments_button = FloatingActionButton(
+        icon=icons.REFRESH,
+        bgcolor=shsu_blue,
+        on_click=refresh_assignments,
+    )
+
     login_buttons_list = [log_in_button, make_account_button]
     sign_up_buttons_list = [sign_up_button, back_to_login_button]
     # ---------------------
@@ -1109,13 +1118,3 @@ def main(page: Page):
 
 
 flet.app(target=main)  # app
-# flet.app(target=main, view=flet.WEB_BROWSER) # browser
-
-
-# In[549]:
-
-
-# testing random things \/
-
-
-# In[ ]:

@@ -49,6 +49,7 @@ from flet import (
     border_radius,
     Divider,
     ListView,
+    ProgressRing,
 )
 
 # In[ ]:
@@ -357,7 +358,7 @@ class SearchCourse(UserControl):
             cursor = connection.cursor()
             cursor.execute(
                 "INSERT INTO user_class(user_ID, dept_ID, course_num, course_name, current_bool, course_level, course_exp) VALUES (:user, :dept_ID, :course_num, :course_name, :current_bool, :course_level, :course_exp)",
-                {'user': userID, 'dept_ID': deptID, 'course_num': coursenum, 'course_name': f"{your_course.course_name}", 'current_bool': 1, 'course_level': 1, 'course_exp': 0.0}
+                {'user': userID, 'dept_ID': deptID, 'course_num': coursenum, 'course_name': f"{your_course.course_name}",'current_bool': 1, 'course_level': 1, 'course_exp': 0.0}
             )
             connection.commit()
             connection.close()

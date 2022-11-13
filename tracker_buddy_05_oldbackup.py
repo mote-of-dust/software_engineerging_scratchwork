@@ -139,7 +139,6 @@ def get_courses():  # access the DB and get all the courses and puts them in a l
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM class")
     results = cursor.fetchall()
-    #print(results[2])
     connection.close()
 
     for result in results:
@@ -291,32 +290,6 @@ class SearchCourse(UserControl):
         connection.close()
         return str(rows[0][0])
 
-    def get_prefix(self, value):
-        connection = sqlite3.connect("group_2_db.db")
-        cursor = connection.cursor()
-
-        # example of what inserting a task into the DB will look like:
-        # INSERT into task(t_type, date_added, user_ID, dept_ID, course_num, task_name, task_descrip) VALUES (1,
-        # strftime('%s', 'now'), 2, "COSC", 3319, "Heap Sort", "build max heap")
-        cursor.execute(f"SELECT dept_ID FROM class WHERE course_name=?", [value])
-        rows = cursor.fetchall()
-        print(rows)
-        connection.close()
-        return str(rows[0][0])
-
-    def get_coursenum(self, value):
-        connection = sqlite3.connect("group_2_db.db")
-        cursor = connection.cursor()
-
-        # example of what inserting a task into the DB will look like:
-        # INSERT into task(t_type, date_added, user_ID, dept_ID, course_num, task_name, task_descrip) VALUES (1,
-        # strftime('%s', 'now'), 2, "COSC", 3319, "Heap Sort", "build max heap")
-        cursor.execute(f"SELECT course_num FROM class WHERE course_name=?", [value])
-        rows = cursor.fetchall()
-        print(rows)
-        connection.close()
-        return str(rows[0][0])
-
     def search_clicked(self, e):
         if self.search.value in self.course_list:
             self.courses.controls[1].controls.append(
@@ -333,39 +306,31 @@ class SearchCourse(UserControl):
             self.update()
 
     def confirm(self, e):
-
-        #print(self.courses.controls[1].controls[0].leading.value)
         try:
-           if self.courses.controls[1].controls[0].leading.value == True:
-            your_course = YourCourse(self.courses.controls[1].controls[0].title.value)
-            self.courses.controls[1].controls.pop()
+            if self.courses.controls[1].controls[0].leading.value == True:
+                your_course = YourCourse(self.courses.controls[1].controls[0].title.value)
+                self.courses.controls[1].controls.pop()
 
-            #                 self.courses.controls[3].controls[2].controls.append(your_course)
-            #                 self.your_course_list.append(your_course)
+                #                 self.courses.controls[3].controls[2].controls.append(your_course)
+                #                 self.your_course_list.append(your_course)
 
-            self.your_course_list.append(your_course)
-            self.confirm_search.bgcolor = shsu_orange
-            self.confirm_search.disabled = False
+                self.your_course_list.append(your_course)
+                self.confirm_search.bgcolor = shsu_orange
+                self.confirm_search.disabled = False
 
-            deptID = self.get_prefix(your_course.course_name)
-            print(deptID)
+                connection = sqlite3.connect("Tracker_buddy_v0.3.db")
+                cursor = connection.cursor()
+                cursor.execute(
+                    "INSERT INTO my_courses VALUES (:name)",
+                    {'name': your_course.course_name}
+                )
+                connection.commit()
+                connection.close()
 
-            coursenum = self.get_coursenum(your_course.course_name)
-            print(coursenum)
+                #                 self.print_list()
 
-            connection = sqlite3.connect("group_2_db.db")
-            cursor = connection.cursor()
-            cursor.execute(
-                "INSERT INTO user_class(user_ID, dept_ID, course_num, course_name, current_bool, course_level, course_exp) VALUES (:user, :dept_ID, :course_num, :course_name, :current_bool, :course_level, :course_exp)",
-                {'user': userID, 'dept_ID': deptID, 'course_num': coursenum, 'course_name': f"{your_course.course_name}", 'current_bool': 1, 'course_level': 1, 'course_exp': 0.0}
-            )
-            connection.commit()
-            connection.close()
-
-            #                 self.print_list()
-
-            self.update()
-            return True
+                self.update()
+                return True
         except:
             print("Nothing to match with")
 
@@ -741,7 +706,7 @@ class SignUp(UserControl):
 
     def signup_button(self, e):
 
-        connection = sqlite3.connect("group_2_db.db")
+        connection = sqlite3.connect("Tracker_buddy_v0.3.db")
         cursor = connection.cursor()
 
         username = self.enter_username.value
@@ -752,7 +717,7 @@ class SignUp(UserControl):
         hashed_password = bcrypt.hashpw(password.encode('utf8'), salt)
         hashed_password = hashed_password.decode('utf8')
 
-        cursor.execute(f"SELECT * FROM user WHERE user_name ='{username}'")
+        cursor.execute(f"SELECT * FROM users WHERE username ='{username}'")
         search = cursor.fetchone()
 
         if search == None:
@@ -764,8 +729,8 @@ class SignUp(UserControl):
 
         else:
             cursor.execute(
-                "INSERT INTO user (user_name, password) VALUES (:user_name, :password)",
-                {'user_name': f"{username}", 'password': f"{hashed_password}"}
+                "INSERT INTO users VALUES (:username, :password)",
+                {'username': f"{username}", 'password': f"{hashed_password}"}
             )
 
             connection.commit()

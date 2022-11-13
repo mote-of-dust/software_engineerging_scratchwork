@@ -394,8 +394,9 @@ class TrackerBuddy(UserControl):
                 self.assignment_complete,
             )
             self.board.controls.append(assignment)
-            # self.assignment_title.value = ""
+            self.assignment_title.value = ""
             self.update()
+            assignment.auto_step(item)
         connection.commit()
         connection.close()
         print("gottem")
@@ -613,6 +614,38 @@ class Assignment(UserControl):
         self.item.controls.append(subtask)
         self.new_step.value = ""
         self.update()
+
+
+    def auto_comp(self, items):
+        for item in items:
+            subtask = SubTask(item, self.subtask_delete)
+            self.item.controls.append(subtask)
+            self.new_step.value = ""
+            self.update()
+
+    # testing function to populate subtasks from line 389ish
+    def auto_step(self, e):
+        print(e)
+        your_list = []
+        # testclass = Assignment()
+
+        connection = sqlite3.connect("group_2_db.db")
+        cursor = connection.cursor()
+        cursor.execute("SELECT description FROM subtask where user_ID=? AND task_ID=(SELECT task_ID FROM task WHERE task_name =?)", [userID, e])
+        results = cursor.fetchall()
+        for i in results:
+            for j in i:
+                subtask = SubTask(j, self.subtask_delete)
+                self.item.controls.append(subtask)
+                self.new_step.value = ""
+                self.update()
+                # your_list.append(j)
+                # testclass.add_step(j)
+                print(j)
+
+        print(your_list)
+        connection.close()
+        print("You're in!")
 
     def subtask_delete(self, subtask):
         self.item.controls.remove(subtask)

@@ -368,6 +368,15 @@ class TrackerBuddy(UserControl):
             self.assignment_delete,
             self.assignment_complete,
         )
+        # connection = sqlite3.connect("group_2_db.db")
+        # cursor = connection.cursor()
+        # cursor.execute(
+        #
+        # )
+        # connection.commit()
+        # connection.close()
+        print("current class: " + str(CURRENTCLASS))
+
         self.board.controls.append(assignment)
         self.assignment_title.value = ""
         self.update()
@@ -609,12 +618,38 @@ class Assignment(UserControl):
 
         return self.card
 
+    def find_taskID(self, e):
+        taskID = ''
+        connection = sqlite3.connect("group_2_db.db")
+        cursor = connection.cursor()
+        cursor.execute("SELECT task_ID FROM task WHERE user_ID=? AND task_name=?", [e[1], e[0]])
+        results = cursor.fetchall()
+        for i in results:
+            for j in i:
+                taskID = j
+                # print(j)
+        connection.close()
+        return taskID
+
     def add_step(self, e):
+        search_values = []
+
         subtask = SubTask(self.new_step.value, self.subtask_delete)
+        search_values.append(self.assignment_name)
+        search_values.append(userID)
+        taskID = self.find_taskID(search_values)
+
+        connection = sqlite3.connect("group_2_db.db")
+        cursor = connection.cursor()
+        cursor.execute(
+            "INSERT INTO subtask(user_ID, task_ID, description, completion) VALUES(:user_ID, :task_ID, :description, :completion)",
+            {'user_ID': userID, 'task_ID': taskID, 'description': f"{self.new_step.value}", 'completion': 0}
+        )
+        connection.commit()
+        connection.close()
         self.item.controls.append(subtask)
         self.new_step.value = ""
         self.update()
-
 
     def auto_comp(self, items):
         for item in items:
@@ -631,7 +666,9 @@ class Assignment(UserControl):
 
         connection = sqlite3.connect("group_2_db.db")
         cursor = connection.cursor()
-        cursor.execute("SELECT description FROM subtask where user_ID=? AND task_ID=(SELECT task_ID FROM task WHERE task_name =?)", [userID, e])
+        cursor.execute(
+            "SELECT description FROM subtask where user_ID=? AND task_ID=(SELECT task_ID FROM task WHERE task_name =?)",
+            [userID, e])
         results = cursor.fetchall()
         for i in results:
             for j in i:
@@ -1032,7 +1069,9 @@ def main(page: Page):
         page.controls.append(login_row)
         page.update()
 
-    def to_assignemnts(e):
+    def to_assignemnts(e, course):
+        # print("as expected" + str(course))
+
         page.controls.remove(searchcourse)
         page.controls.remove(courses_row)
         page.controls.remove(refresh_list_button)
@@ -1041,16 +1080,28 @@ def main(page: Page):
         page.controls.append(refresh_assignments_button)
         page.controls.append(level_ring)
         page.controls.append(level_display)
+        var = course
         page.update()
+
+    def set_class(course):
+        global CURRENTCLASS
+        CURRENTCLASS = course
+        print(CURRENTCLASS)
 
     def create_courses_button(e):
         my_courses = searchcourse.print_list()
         for item in my_courses:
+            course_name = item
+            print('-----------')
+            print(course_name)
             course_button = ElevatedButton(
                 text=item,
                 color=colors.WHITE,
                 bgcolor=shsu_orange,
-                on_click=to_assignemnts
+                # on_click=set_class(course_name),
+                # on_click=to_assignemnts,
+                on_click=to_assignemnts,
+                data=item,
             )
             courses_row.controls.append(course_button)
             page.update()

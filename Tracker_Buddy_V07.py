@@ -1069,7 +1069,7 @@ def main(page: Page):
         page.controls.append(login_row)
         page.update()
 
-    def to_assignemnts(e, course):
+    def to_assignemnts(e):
         # print("as expected" + str(course))
 
         page.controls.remove(searchcourse)
@@ -1080,13 +1080,15 @@ def main(page: Page):
         page.controls.append(refresh_assignments_button)
         page.controls.append(level_ring)
         page.controls.append(level_display)
-        var = course
         page.update()
 
+    # probably useless function, trying to find a way to set a global var
+    # via the course_button click within create_courses_button()
     def set_class(course):
         global CURRENTCLASS
         CURRENTCLASS = course
         print(CURRENTCLASS)
+
 
     def create_courses_button(e):
         my_courses = searchcourse.print_list()

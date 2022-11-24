@@ -1,6 +1,8 @@
+import inspect
 import sqlite3
 import bcrypt
 import flet
+import re
 from flet import (
     Checkbox,
     Column,
@@ -50,6 +52,7 @@ from flet import (
     Divider,
     ListView,
     ProgressRing,
+    ProgressBar
 )
 
 # SHSU colors
@@ -60,6 +63,8 @@ shsu_blue = "#333798"
 userID = ''
 CURRENTCLASS = ''
 CURRENTASSIGNMENT = ''
+progress_value = 0.5
+current_level = 0
 
 
 def get_courses():  # access the DB and get all the courses and puts them in a list
@@ -102,7 +107,7 @@ def your_assignments():
 
     connection = sqlite3.connect("group_2_db.db")
     cursor = connection.cursor()
-    cursor.execute("SELECT task_name FROM task where user_ID=? AND course_num=?", [userID, CURRENTCLASS])
+    cursor.execute("SELECT task_name FROM task where user_ID=? AND course_name=?", [userID, CURRENTCLASS])
     results = cursor.fetchall()
     # print(results)
     connection.close()
@@ -112,6 +117,13 @@ def your_assignments():
     # print(your_list)
 
     return your_list
+
+
+def check_email(regular_expression, email):
+    if (re.fullmatch(regular_expression, email)):
+        return True
+    else:
+        return False
 
 
 class SearchCourse(UserControl):
@@ -368,28 +380,58 @@ class TrackerBuddy(UserControl):
             self.assignment_delete,
             self.assignment_complete,
         )
-        # connection = sqlite3.connect("group_2_db.db")
-        # cursor = connection.cursor()
-        # cursor.execute(
-        #
-        # )
-        # connection.commit()
-        # connection.close()
+        class_info = []
+        connection = sqlite3.connect("group_2_db.db")
+        cursor = connection.cursor()
+
+        cursor.execute("SELECT dept_ID, course_num FROM user_class WHERE user_ID=? AND course_name=?",
+                       [userID, CURRENTCLASS])
+        results = cursor.fetchall()
+        for i in results:
+            for j in i:
+                class_info.append(j)
+
+        print(class_info)
+        print(self.assignment_title.value)
+
+        cursor.execute(
+            "INSERT into task(t_type, date_added, user_ID, dept_ID, course_num, task_name, course_name) VALUES (1, "
+            "strftime('%s', 'now'), ?, ?, ?, ?, ?)",
+            [userID, class_info[0], class_info[1], self.assignment_title.value, CURRENTCLASS]
+        )
+        connection.commit()
+        connection.close()
         print("current class: " + str(CURRENTCLASS))
 
         self.board.controls.append(assignment)
         self.assignment_title.value = ""
         self.update()
 
+    def level_update(self):
+        levelinfo = []
+        connection = sqlite3.connect("group_2_db.db")
+        cursor = connection.cursor()
+        cursor.execute("SELECT course_level, course_exp FROM user_class WHERE user_ID=? AND course_name=?",
+                       [userID, CURRENTCLASS])
+        results = cursor.fetchall()
+
+        for i in results:
+            for j in i:
+                levelinfo.append(j)
+        print("Level info is: %d, %f" % (levelinfo[0], levelinfo[1]))
+        connection.commit()
+        connection.close()
+        return levelinfo
+
     def call_check(self, e):
+
         tasks = []
         connection = sqlite3.connect("group_2_db.db")
         cursor = connection.cursor()
-        cursor.execute(
-            "SELECT task_name FROM task WHERE user_ID = 2 AND date_completed is NULL"
-        )
+        cursor.execute("SELECT task_name FROM task WHERE user_ID =? and course_name=? AND date_completed is NULL",
+                       [userID, CURRENTCLASS])
         results = cursor.fetchall()
-        # print(results)
+        print(CURRENTCLASS)
         for i in results:
             for j in i:
                 tasks.append(j)
@@ -408,7 +450,7 @@ class TrackerBuddy(UserControl):
             assignment.auto_step(item)
         connection.commit()
         connection.close()
-        print("gottem")
+        self.update()
 
     def assignment_status_change(self, assignment):
         self.update()
@@ -418,7 +460,41 @@ class TrackerBuddy(UserControl):
         self.update()
 
     def assignment_complete(self, assignment):
+        print(assignment.assignment_name)
+
+        levelinfo = []
         self.board.controls.remove(assignment)
+        connection = sqlite3.connect("group_2_db.db")
+        cursor = connection.cursor()
+        cursor.execute("SELECT course_level, course_exp FROM user_class WHERE user_ID=? AND course_name=?",
+                       [userID, CURRENTCLASS])
+        results = cursor.fetchall()
+
+        for i in results:
+            for j in i:
+                levelinfo.append(j)
+
+        connection.commit()
+        connection.close()
+
+        levelinfo[1] += 0.15
+        if levelinfo[1] >= 1.0:
+            levelinfo[0] += 1
+            levelinfo[1] = levelinfo[1] - 1.0
+
+        connection = sqlite3.connect("group_2_db.db")
+        cursor = connection.cursor()
+
+        cursor.execute("UPDATE user_class SET course_level =?, course_exp=? WHERE user_ID=? and course_name=?",
+                       [levelinfo[0], levelinfo[1], userID, CURRENTCLASS])
+
+        connection.commit()
+
+        cursor.execute("UPDATE task SET date_completed = strftime('%s', 'now') WHERE user_ID=? AND task_name=? and "
+                       "course_name=?", [userID, assignment.assignment_name, CURRENTCLASS])
+        connection.commit()
+        connection.close()
+
         # logic for adding points goes here
 
         self.update()
@@ -744,7 +820,7 @@ class User(UserControl):
 class SignUp(UserControl):
 
     def build(self):
-        self.enter_username = TextField(
+        self.enter_email = TextField(
             hint_text="Username",
             label="Username",
             border_color=shsu_orange,
@@ -767,7 +843,7 @@ class SignUp(UserControl):
                 Text("Sign Up Page", size=40),
                 Row(
                     controls=[
-                        self.enter_username,
+                        self.enter_email,
                     ],
                 ),
                 Row(
@@ -787,31 +863,45 @@ class SignUp(UserControl):
 
     def signup_button(self, e):
 
+        email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+
         connection = sqlite3.connect("group_2_db.db")
         cursor = connection.cursor()
 
-        username = self.enter_username.value
+        email = self.enter_email.value
         password = self.enter_password.value
 
-        salt = bcrypt.gensalt()
+        email_salt = bcrypt.gensalt()
+        password_salt = bcrypt.gensalt()
 
-        hashed_password = bcrypt.hashpw(password.encode('utf8'), salt)
+        hashed_email = bcrypt.hashpw(email.encode('utf8'), email_salt)
+        hashed_email = hashed_email.decode('utf8')
+
+        hashed_password = bcrypt.hashpw(password.encode('utf8'), password_salt)
         hashed_password = hashed_password.decode('utf8')
 
-        cursor.execute(f"SELECT * FROM user WHERE user_name ='{username}'")
+        # Believe this needs to select for {hashed_email} not email, to check later.
+        cursor.execute(f"SELECT * FROM user WHERE user_name ='{email}'")
         search = cursor.fetchone()
 
         if search == None:
             search = ("", "")
 
-        if username == search[0]:
-            print("Username already exists. Try a different one.")
+        valid_email = check_email(email_regex, email)
+
+        if valid_email:
+            print("Valid Email")
+        else:
+            return False
+
+        if email == search[0]:
+            print("This email has already been used. Try a different one.")
             return False
 
         else:
             cursor.execute(
                 "INSERT INTO user (user_name, password) VALUES (:user_name, :password)",
-                {'user_name': f"{username}", 'password': f"{hashed_password}"}
+                {'user_name': f"{email}", 'password': f"{hashed_password}"}
             )
 
             connection.commit()
@@ -826,7 +916,7 @@ class SignUp(UserControl):
 class Login(UserControl):
 
     def build(self):
-        self.enter_username = TextField(
+        self.enter_email = TextField(
             hint_text="Username",
             label="Username",
             border_color=shsu_orange,
@@ -849,7 +939,7 @@ class Login(UserControl):
                 Text("Login Page", size=40),
                 Row(
                     controls=[
-                        self.enter_username,
+                        self.enter_email,
                     ],
                 ),
                 Row(
@@ -872,12 +962,12 @@ class Login(UserControl):
         connection = sqlite3.connect("group_2_db.db")
         cursor = connection.cursor()
 
-        username = self.enter_username.value
+        email = self.enter_email.value
         password = self.enter_password.value
 
         password = password.encode('utf8')
 
-        cursor.execute(f"SELECT * FROM user WHERE user_name ='{username}'")
+        cursor.execute(f"SELECT * FROM user WHERE user_name ='{email}'")
         search = cursor.fetchone()
 
         if search == None:
@@ -885,7 +975,7 @@ class Login(UserControl):
 
         hashed = str.encode(search[2])
 
-        if username == search[1] and bcrypt.checkpw(password, hashed):
+        if email == search[1] and bcrypt.checkpw(password, hashed):
             print("Match")
             userID = int(search[0])
             print(int(userID))
@@ -933,23 +1023,24 @@ def main(page: Page):
         icon_color=colors.WHITE,
         on_click=theme_mode,
     )
+
     # ---------------------
 
     # level & progress ring
-    level_display = Text(
-        value="5",  # display purpose global variable would go here
-        size=30,
-        color=shsu_orange,
-    )
-
-    level_ring = ProgressRing(
-        value=0.5,
-        color=shsu_orange,
-        tooltip="Progress to the next level",
-        width=20,
-        height=20,
-        stroke_width=2
-    )
+    # level_display = Text(
+    #     value="5",  # display purpose global variable would go here
+    #     size=30,
+    #     color=shsu_orange,
+    # )
+    #
+    # level_ring = ProgressRing(
+    #     value=0.5,
+    #     color=shsu_orange,
+    #     tooltip="Progress to the next level",
+    #     width=20,
+    #     height=20,
+    #     stroke_width=2
+    # )
 
     def level_up():
         pass  # logic to level up
@@ -1012,7 +1103,7 @@ def main(page: Page):
             size=40
         ),
         content=Text(
-            "User not found. Please, try again.",
+            "Not a valid email. Please, try again.",
             color=colors.WHITE,
             size=20
         ),
@@ -1070,7 +1161,22 @@ def main(page: Page):
         page.update()
 
     def to_assignemnts(e):
-        # print("as expected" + str(course))
+        global CURRENTCLASS
+        CURRENTCLASS = str(e.control.data)
+        print(CURRENTCLASS)
+
+        levelinfo = []
+        connection = sqlite3.connect("group_2_db.db")
+        cursor = connection.cursor()
+        cursor.execute("SELECT course_level, course_exp FROM user_class WHERE user_ID=? AND course_name=?",
+                       [userID, CURRENTCLASS])
+        results = cursor.fetchall()
+
+        for i in results:
+            for j in i:
+                levelinfo.append(j)
+        connection.commit()
+        connection.close()
 
         page.controls.remove(searchcourse)
         page.controls.remove(courses_row)
@@ -1078,8 +1184,12 @@ def main(page: Page):
         page.controls.append(back_to_courses_button)
         page.controls.append(tracker)
         page.controls.append(refresh_assignments_button)
-        page.controls.append(level_ring)
-        page.controls.append(level_display)
+        # page.controls.append(level_ring)
+        # page.controls.append(level_display)
+        page.controls.append(progress_card)
+        progress_bar.value = levelinfo[1]
+        progress_tile.leading = Text(str(levelinfo[0]), size=30)
+
         page.update()
 
     # probably useless function, trying to find a way to set a global var
@@ -1088,7 +1198,6 @@ def main(page: Page):
         global CURRENTCLASS
         CURRENTCLASS = course
         print(CURRENTCLASS)
-
 
     def create_courses_button(e):
         my_courses = searchcourse.print_list()
@@ -1114,15 +1223,15 @@ def main(page: Page):
 
     def refresh_assignments(e):
         tracker.call_check(e)
-        # print("got ya bish") # logic to refresh assignments here
 
     def to_courses(e):
         #         appbar.title = Text("Tracker Buddy") # this will change the name to the class name
         page.controls.remove(back_to_courses_button)
         page.controls.remove(tracker)
         page.controls.remove(refresh_assignments_button)
-        page.controls.remove(level_ring)
-        page.controls.remove(level_display)
+        page.controls.remove(progress_card)
+        # page.controls.remove(level_ring)
+        # page.controls.remove(level_display)
         page.controls.append(searchcourse)
         page.controls.append(courses_row)
         page.controls.append(refresh_list_button)
@@ -1198,6 +1307,29 @@ def main(page: Page):
         controls=[],
     )
     # ---------------------
+
+    progress_bar = ProgressBar(
+        value=progress_value,
+        color=shsu_orange,
+        bgcolor=shsu_blue,
+        bar_height=10,
+        width=1000,
+    )
+
+    progress_tile = ListTile(
+        leading=Text(str(current_level), size=30),
+        title=Text("Level"),
+        subtitle=progress_bar,
+        dense=True,
+    )
+
+    progress_card = Card(
+        content=Container(
+            width=500,
+            content=progress_tile,
+            padding=1,
+        )
+    )
 
     # Start the machine
     page.add(login, login_row)

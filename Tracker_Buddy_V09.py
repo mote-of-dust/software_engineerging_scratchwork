@@ -505,18 +505,21 @@ class TrackerBuddy(UserControl):
 
 class SubTask(UserControl):
 
-    def __init__(self, subtask_name, subtask_delete):
+    def __init__(self, subtask_name, subtask_delete, subtask_complete):
         super().__init__()
         self.subtask_name = subtask_name
         self.subtask_delete = subtask_delete
+        self.subtask_complete = subtask_complete
 
     def build(self):
         self.counter = 0
 
         self.display_subtask = Checkbox(
-            value=False,
+            value=self.subtask_complete,
             label=self.subtask_name,
-            #             on_change=self.assignment_status
+            data=[self.subtask_name, self.subtask_complete],
+            on_change=self.completion
+
         )
 
         self.edit_icon = IconButton(
@@ -566,6 +569,29 @@ class SubTask(UserControl):
                 self.edit_view,
             ]
         )
+
+
+# This function tells the database a subtask is completed so that
+# in the future the application will show the checkboxes as being checked (remembering state)
+    def completion(self, e):
+        if e.control.data[1] == False:
+            connection = sqlite3.connect("group_2_db.db")
+            cursor = connection.cursor()
+            cursor.execute(
+                "UPDATE subtask SET completion = 1 WHERE user_ID =? AND description=?", (userID, e.control.data[0])
+            )
+
+            connection.commit()
+            connection.close()
+        else:
+            connection = sqlite3.connect("group_2_db.db")
+            cursor = connection.cursor()
+            cursor.execute(
+                "UPDATE subtask SET completion = 0 WHERE user_ID =? AND description=?", (userID, e.control.data[0])
+            )
+
+            connection.commit()
+            connection.close()
 
     def edit_clicked(self, e):
         self.edit_title.value = self.display_subtask.label
@@ -738,23 +764,28 @@ class Assignment(UserControl):
     def auto_step(self, e):
         print(e)
         your_list = []
+        compbool=''
         # testclass = Assignment()
 
         connection = sqlite3.connect("group_2_db.db")
         cursor = connection.cursor()
         cursor.execute(
-            "SELECT description FROM subtask where user_ID=? AND task_ID=(SELECT task_ID FROM task WHERE task_name =?)",
+            "SELECT description, completion FROM subtask where user_ID=? AND task_ID=(SELECT task_ID FROM task WHERE task_name =?)",
             [userID, e])
         results = cursor.fetchall()
         for i in results:
-            for j in i:
-                subtask = SubTask(j, self.subtask_delete)
-                self.item.controls.append(subtask)
-                self.new_step.value = ""
-                self.update()
-                # your_list.append(j)
-                # testclass.add_step(j)
-                print(j)
+            if i[1] == 0:
+                compbool = False
+            else:
+                compbool = True
+
+            subtask = SubTask(i[0], self.subtask_delete, compbool)
+            self.item.controls.append(subtask)
+            self.new_step.value = ""
+            self.update()
+            # your_list.append(j)
+            # testclass.add_step(j)
+            print(i)
 
         print(your_list)
         connection.close()

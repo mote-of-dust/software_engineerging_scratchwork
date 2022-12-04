@@ -736,7 +736,7 @@ class Assignment(UserControl):
     def add_step(self, e):
         search_values = []
 
-        subtask = SubTask(self.new_step.value, self.subtask_delete)
+        subtask = SubTask(self.new_step.value, self.subtask_delete, False)
         search_values.append(self.assignment_name)
         search_values.append(userID)
         taskID = self.find_taskID(search_values)
